@@ -208,6 +208,130 @@ class App {
     eventFilter.addEventListener('change', (e) => {
       ContactsManager.applyEventFilter(e.target.value);
     });
+
+    // Add Contact button
+    document.getElementById('add-contact-btn').addEventListener('click', () => {
+      this.showAddContactModal();
+    });
+  }
+
+  // Show add contact modal
+  showAddContactModal() {
+    const modal = document.getElementById('add-contact-modal');
+    modal.classList.add('is-active');
+
+    // Close handlers
+    const closeModal = () => {
+      modal.classList.remove('is-active');
+      document.getElementById('add-contact-form').reset();
+    };
+
+    document.getElementById('close-add-contact').onclick = closeModal;
+    document.getElementById('cancel-add-contact').onclick = closeModal;
+    modal.querySelector('.modal-background').onclick = closeModal;
+
+    // Save handler
+    document.getElementById('save-new-contact').onclick = async () => {
+      await this.saveNewContact();
+    };
+  }
+
+  // Save new contact
+  async saveNewContact() {
+    const contactData = {
+      name: document.getElementById('add-name').value.trim(),
+      email: document.getElementById('add-email').value.trim(),
+      phone: document.getElementById('add-phone').value.trim(),
+      company: document.getElementById('add-company').value.trim(),
+      title: document.getElementById('add-title').value.trim(),
+      website: document.getElementById('add-website').value.trim(),
+      linkedin: document.getElementById('add-linkedin').value.trim(),
+      twitter: document.getElementById('add-twitter').value.trim(),
+      github: document.getElementById('add-github').value.trim(),
+      event: document.getElementById('add-event').value.trim()
+    };
+
+    if (!contactData.name) {
+      alert('Name is required');
+      return;
+    }
+
+    try {
+      await db.addContact(contactData);
+      this.showNotification('Contact added successfully!', 'success');
+
+      // Close modal
+      document.getElementById('add-contact-modal').classList.remove('is-active');
+      document.getElementById('add-contact-form').reset();
+
+      // Refresh contacts list
+      await ContactsManager.loadEventFilters();
+      await ContactsManager.loadContacts();
+    } catch (error) {
+      console.error('Error adding contact:', error);
+      alert('Failed to add contact: ' + error.message);
+    }
+  }
+
+  // Show contact QR code
+  async showContactQR(contact) {
+    const modal = document.getElementById('view-qr-modal');
+    modal.classList.add('is-active');
+
+    // Set title
+    document.getElementById('qr-modal-title').textContent = `QR Code for ${contact.name}`;
+
+    // Generate VCard
+    const vcardString = VCard.generate(contact);
+
+    // Clear previous QR code
+    const qrDisplay = document.getElementById('contact-qr-display');
+    qrDisplay.innerHTML = '';
+
+    // Wait for QRCode library
+    if (typeof QRCode !== 'undefined') {
+      // Generate QR code
+      const qr = new QRCode(qrDisplay, {
+        text: vcardString,
+        width: 300,
+        height: 300,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // Show contact info
+      document.getElementById('qr-contact-info').textContent =
+        contact.event ? `Event: ${contact.event}` : 'No event specified';
+    } else {
+      qrDisplay.innerHTML = '<p class="has-text-danger">QR Code library not loaded</p>';
+    }
+
+    // Close handlers
+    const closeModal = () => {
+      modal.classList.remove('is-active');
+    };
+
+    document.getElementById('close-qr-modal').onclick = closeModal;
+    document.getElementById('close-qr-modal-btn').onclick = closeModal;
+    modal.querySelector('.modal-background').onclick = closeModal;
+
+    // Download handler
+    document.getElementById('download-contact-qr').onclick = () => {
+      const qrCanvas = document.querySelector('#contact-qr-display canvas');
+      if (qrCanvas) {
+        qrCanvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${contact.name}-qr.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }
+    };
   }
 
   // Show notification
@@ -242,7 +366,8 @@ class App {
 }
 
 // Initialize app when DOM is ready
+let app; // Global app instance
 document.addEventListener('DOMContentLoaded', () => {
-  const app = new App();
+  app = new App();
   app.init();
 });

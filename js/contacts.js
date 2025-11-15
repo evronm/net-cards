@@ -93,13 +93,16 @@ const ContactsManager = {
           </div>
           <div class="media-right">
             <div class="buttons are-small">
-              <button class="button is-primary share-contact" data-id="${contact.id}">
+              <button class="button is-info view-qr-contact" data-id="${contact.id}" title="View QR Code">
+                <span class="icon"><i class="fas fa-qrcode"></i></span>
+              </button>
+              <button class="button is-primary share-contact" data-id="${contact.id}" title="Share">
                 <span class="icon"><i class="fas fa-share"></i></span>
               </button>
-              <button class="button is-link export-contact" data-id="${contact.id}">
+              <button class="button is-link export-contact" data-id="${contact.id}" title="Export VCF">
                 <span class="icon"><i class="fas fa-download"></i></span>
               </button>
-              <button class="button is-danger delete-contact" data-id="${contact.id}">
+              <button class="button is-danger delete-contact" data-id="${contact.id}" title="Delete">
                 <span class="icon"><i class="fas fa-trash"></i></span>
               </button>
             </div>
@@ -149,6 +152,14 @@ const ContactsManager = {
 
   // Attach event listeners to contact action buttons
   attachEventListeners() {
+    // View QR buttons
+    document.querySelectorAll('.view-qr-contact').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = parseInt(e.currentTarget.dataset.id);
+        await this.viewContactQR(id);
+      });
+    });
+
     // Share buttons
     document.querySelectorAll('.share-contact').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -174,6 +185,20 @@ const ContactsManager = {
         }
       });
     });
+  },
+
+  // View QR code for a contact
+  async viewContactQR(id) {
+    try {
+      const contact = await db.getContact(id);
+      // Trigger the modal display - will be handled in app.js
+      if (typeof app !== 'undefined' && app.showContactQR) {
+        app.showContactQR(contact);
+      }
+    } catch (error) {
+      console.error('Error viewing contact QR:', error);
+      alert('Failed to generate QR code');
+    }
   },
 
   // Share contact using Web Share API
