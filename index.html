@@ -65,37 +65,12 @@
     </style>
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Simple Header -->
     <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
             <a class="navbar-item" href="#">
                 <strong>Net-Cards</strong>
             </a>
-            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-            </a>
-        </div>
-        <div id="navbarMenu" class="navbar-menu">
-            <div class="navbar-start">
-                <a class="navbar-item" data-section="my-card">
-                    <span class="icon"><i class="fas fa-id-card"></i></span>
-                    <span>My Card</span>
-                </a>
-                <a class="navbar-item" data-section="scan">
-                    <span class="icon"><i class="fas fa-qrcode"></i></span>
-                    <span>Scan</span>
-                </a>
-                <a class="navbar-item" data-section="contacts">
-                    <span class="icon"><i class="fas fa-address-book"></i></span>
-                    <span>Contacts</span>
-                </a>
-                <a class="navbar-item" data-section="import-export">
-                    <span class="icon"><i class="fas fa-exchange-alt"></i></span>
-                    <span>Import/Export</span>
-                </a>
-            </div>
         </div>
     </nav>
 
@@ -281,6 +256,12 @@
                     </div>
                 </div>
                 <div class="level-right">
+                    <div class="level-item">
+                        <button class="button is-link" id="back-to-card-btn">
+                            <span class="icon"><i class="fas fa-id-card"></i></span>
+                            <span>My Card</span>
+                        </button>
+                    </div>
                     <div class="level-item">
                         <button class="button is-primary" id="add-contact-btn">
                             <span class="icon"><i class="fas fa-plus"></i></span>

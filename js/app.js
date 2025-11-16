@@ -216,6 +216,11 @@ class App {
     document.getElementById('add-contact-btn').addEventListener('click', () => {
       this.showAddContactModal();
     });
+
+    // Back to My Card button
+    document.getElementById('back-to-card-btn').addEventListener('click', () => {
+      this.navigateToSection('my-card');
+    });
   }
 
   // Setup quick actions for mobile
