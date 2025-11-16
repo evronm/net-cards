@@ -105,6 +105,9 @@ const VCard = {
       notes.push(socialHandles.join(' | '));
     }
 
+    // Add footer message
+    notes.push('\nNo trees were harmed in the making of this contact. https://netcards.app');
+
     return notes.join('\n');
   },
 

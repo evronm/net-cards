@@ -96,6 +96,9 @@ const ContactsManager = {
               <button class="button is-info view-qr-contact" data-id="${contact.id}" title="View QR Code">
                 <span class="icon"><i class="fas fa-qrcode"></i></span>
               </button>
+              <button class="button is-warning edit-contact" data-id="${contact.id}" title="Edit">
+                <span class="icon"><i class="fas fa-edit"></i></span>
+              </button>
               <button class="button is-primary share-contact" data-id="${contact.id}" title="Share">
                 <span class="icon"><i class="fas fa-share"></i></span>
               </button>
@@ -160,6 +163,14 @@ const ContactsManager = {
       });
     });
 
+    // Edit buttons
+    document.querySelectorAll('.edit-contact').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = parseInt(e.currentTarget.dataset.id);
+        await this.editContact(id);
+      });
+    });
+
     // Share buttons
     document.querySelectorAll('.share-contact').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -185,6 +196,20 @@ const ContactsManager = {
         }
       });
     });
+  },
+
+  // Edit contact
+  async editContact(id) {
+    try {
+      const contact = await db.getContact(id);
+      // Trigger the edit modal - will be handled in app.js
+      if (typeof app !== 'undefined' && app.showEditContactModal) {
+        app.showEditContactModal(contact);
+      }
+    } catch (error) {
+      console.error('Error editing contact:', error);
+      alert('Failed to load contact');
+    }
   },
 
   // View QR code for a contact

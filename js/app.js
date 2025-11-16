@@ -220,10 +220,20 @@ class App {
     const modal = document.getElementById('add-contact-modal');
     modal.classList.add('is-active');
 
+    // Reset form and set title
+    document.getElementById('add-contact-form').reset();
+    document.querySelector('#add-contact-modal .modal-card-title').textContent = 'Add Contact Manually';
+
+    // Store that we're in add mode
+    modal.dataset.mode = 'add';
+    delete modal.dataset.contactId;
+
     // Close handlers
     const closeModal = () => {
       modal.classList.remove('is-active');
       document.getElementById('add-contact-form').reset();
+      delete modal.dataset.mode;
+      delete modal.dataset.contactId;
     };
 
     document.getElementById('close-add-contact').onclick = closeModal;
@@ -232,12 +242,58 @@ class App {
 
     // Save handler
     document.getElementById('save-new-contact').onclick = async () => {
-      await this.saveNewContact();
+      await this.saveContact();
     };
   }
 
-  // Save new contact
-  async saveNewContact() {
+  // Show edit contact modal
+  showEditContactModal(contact) {
+    const modal = document.getElementById('add-contact-modal');
+    modal.classList.add('is-active');
+
+    // Set title
+    document.querySelector('#add-contact-modal .modal-card-title').textContent = 'Edit Contact';
+
+    // Store that we're in edit mode
+    modal.dataset.mode = 'edit';
+    modal.dataset.contactId = contact.id;
+
+    // Populate form with contact data
+    document.getElementById('add-name').value = contact.name || '';
+    document.getElementById('add-email').value = contact.email || '';
+    document.getElementById('add-phone').value = contact.phone || '';
+    document.getElementById('add-company').value = contact.company || '';
+    document.getElementById('add-title').value = contact.title || '';
+    document.getElementById('add-website').value = contact.website || '';
+    document.getElementById('add-linkedin').value = contact.linkedin || '';
+    document.getElementById('add-twitter').value = contact.twitter || '';
+    document.getElementById('add-github').value = contact.github || '';
+    document.getElementById('add-event').value = contact.event || '';
+
+    // Close handlers
+    const closeModal = () => {
+      modal.classList.remove('is-active');
+      document.getElementById('add-contact-form').reset();
+      delete modal.dataset.mode;
+      delete modal.dataset.contactId;
+    };
+
+    document.getElementById('close-add-contact').onclick = closeModal;
+    document.getElementById('cancel-add-contact').onclick = closeModal;
+    modal.querySelector('.modal-background').onclick = closeModal;
+
+    // Save handler
+    document.getElementById('save-new-contact').onclick = async () => {
+      await this.saveContact();
+    };
+  }
+
+  // Save contact (handles both add and edit)
+  async saveContact() {
+    const modal = document.getElementById('add-contact-modal');
+    const mode = modal.dataset.mode;
+    const contactId = modal.dataset.contactId;
+
     const contactData = {
       name: document.getElementById('add-name').value.trim(),
       email: document.getElementById('add-email').value.trim(),
@@ -257,19 +313,28 @@ class App {
     }
 
     try {
-      await db.addContact(contactData);
-      this.showNotification('Contact added successfully!', 'success');
+      if (mode === 'edit' && contactId) {
+        // Update existing contact
+        await db.updateContact(parseInt(contactId), contactData);
+        this.showNotification('Contact updated successfully!', 'success');
+      } else {
+        // Add new contact
+        await db.addContact(contactData);
+        this.showNotification('Contact added successfully!', 'success');
+      }
 
       // Close modal
-      document.getElementById('add-contact-modal').classList.remove('is-active');
+      modal.classList.remove('is-active');
       document.getElementById('add-contact-form').reset();
+      delete modal.dataset.mode;
+      delete modal.dataset.contactId;
 
       // Refresh contacts list
       await ContactsManager.loadEventFilters();
       await ContactsManager.loadContacts();
     } catch (error) {
-      console.error('Error adding contact:', error);
-      alert('Failed to add contact: ' + error.message);
+      console.error('Error saving contact:', error);
+      alert('Failed to save contact: ' + error.message);
     }
   }
 
