@@ -1,4 +1,4 @@
-const CACHE_NAME = 'net-cards-v2';
+const CACHE_NAME = 'net-cards-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -16,6 +16,13 @@ const urlsToCache = [
   'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js'
 ];
 
+// Message handler for skip waiting
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Install event - cache resources
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -28,7 +35,7 @@ self.addEventListener('install', event => {
         console.log('Cache install error:', err);
       })
   );
-  self.skipWaiting();
+  // Don't skip waiting automatically - let the user decide
 });
 
 // Activate event - clean up old caches
