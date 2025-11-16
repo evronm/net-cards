@@ -194,6 +194,12 @@ class App {
     const searchInput = document.getElementById('search-contacts');
     const searchBtn = document.getElementById('search-btn');
 
+    // Incremental search - triggers on every keystroke
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.trim();
+      ContactsManager.applySearch(query);
+    });
+
     searchBtn.addEventListener('click', () => {
       const query = searchInput.value.trim();
       ContactsManager.applySearch(query);
