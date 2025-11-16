@@ -26,6 +26,9 @@ class App {
       // Setup contacts page
       this.setupContactsPage();
 
+      // Setup mobile quick actions
+      this.setupQuickActions();
+
       // Load user profile
       await this.loadUserProfile();
 
@@ -213,6 +216,196 @@ class App {
     document.getElementById('add-contact-btn').addEventListener('click', () => {
       this.showAddContactModal();
     });
+  }
+
+  // Setup quick actions for mobile
+  setupQuickActions() {
+    // Profile form toggle
+    const toggleBtn = document.getElementById('toggle-profile-form');
+    const formContainer = document.getElementById('profile-form-container');
+    const toggleIcon = document.getElementById('profile-toggle-icon');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = formContainer.style.display === 'none';
+        formContainer.style.display = isHidden ? 'block' : 'none';
+        toggleIcon.className = isHidden ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+      });
+    }
+
+    // Quick scan button
+    const quickScanBtn = document.getElementById('quick-scan-btn');
+    if (quickScanBtn) {
+      quickScanBtn.addEventListener('click', () => {
+        this.showQuickScanModal();
+      });
+    }
+
+    // View contacts button
+    const viewContactsBtn = document.getElementById('view-contacts-btn');
+    if (viewContactsBtn) {
+      viewContactsBtn.addEventListener('click', () => {
+        this.navigateToSection('contacts');
+      });
+    }
+  }
+
+  // Show quick scan modal
+  async showQuickScanModal() {
+    const modal = document.getElementById('quick-scan-modal');
+    modal.classList.add('is-active');
+
+    // Initialize quick scanner
+    const video = document.getElementById('quick-qr-video');
+    const canvas = document.getElementById('quick-qr-canvas');
+    const canvasContext = canvas.getContext('2d');
+
+    let stream = null;
+    let scanning = true;
+    let scannedContactData = null;
+
+    // Start camera
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      video.srcObject = stream;
+      await video.play();
+
+      // Scan loop
+      const scan = () => {
+        if (!scanning) return;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+          if (code) {
+            scanning = false;
+            handleScan(code.data);
+            return;
+          }
+        }
+
+        requestAnimationFrame(scan);
+      };
+
+      scan();
+    } catch (error) {
+      console.error('Camera error:', error);
+      alert('Failed to access camera');
+      modal.classList.remove('is-active');
+      return;
+    }
+
+    // Handle scanned QR code
+    const handleScan = async (data) => {
+      // Stop camera
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        if (!data.includes('BEGIN:VCARD')) {
+          alert('Not a valid V-Card QR code');
+          modal.classList.remove('is-active');
+          return;
+        }
+
+        // Parse V-Card
+        const contactData = VCard.parse(data);
+
+        if (!contactData.name) {
+          alert('V-Card does not contain a name');
+          modal.classList.remove('is-active');
+          return;
+        }
+
+        // Handle event tagging
+        const defaultEvent = document.getElementById('quick-scan-event').value.trim();
+        if (!contactData.event && defaultEvent) {
+          contactData.event = defaultEvent;
+        } else if (contactData.event && defaultEvent && contactData.event !== defaultEvent) {
+          contactData.event = `${contactData.event}, ${defaultEvent}`;
+        }
+
+        scannedContactData = contactData;
+
+        // Close scan modal and show contact preview
+        modal.classList.remove('is-active');
+        this.showScannedContactModal(scannedContactData);
+
+      } catch (error) {
+        console.error('Error processing QR code:', error);
+        alert('Failed to process QR code');
+        modal.classList.remove('is-active');
+      }
+    };
+
+    // Close handlers
+    const closeModal = () => {
+      scanning = false;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      modal.classList.remove('is-active');
+    };
+
+    document.getElementById('close-quick-scan').onclick = closeModal;
+    document.getElementById('stop-quick-scan').onclick = closeModal;
+    modal.querySelector('.modal-background').onclick = closeModal;
+  }
+
+  // Show scanned contact preview modal
+  showScannedContactModal(contactData) {
+    const modal = document.getElementById('scanned-contact-modal');
+    const detailsDiv = document.getElementById('scanned-contact-details');
+
+    // Build contact details HTML
+    let html = `<h3 class="title is-4">${contactData.name}</h3>`;
+    if (contactData.title) html += `<p><strong>Title:</strong> ${contactData.title}</p>`;
+    if (contactData.company) html += `<p><strong>Company:</strong> ${contactData.company}</p>`;
+    if (contactData.email) html += `<p><strong>Email:</strong> <a href="mailto:${contactData.email}">${contactData.email}</a></p>`;
+    if (contactData.phone) html += `<p><strong>Phone:</strong> <a href="tel:${contactData.phone}">${contactData.phone}</a></p>`;
+    if (contactData.website) html += `<p><strong>Website:</strong> <a href="${contactData.website}" target="_blank">${contactData.website}</a></p>`;
+    if (contactData.linkedin) html += `<p><strong>LinkedIn:</strong> ${contactData.linkedin}</p>`;
+    if (contactData.twitter) html += `<p><strong>Twitter:</strong> ${contactData.twitter}</p>`;
+    if (contactData.github) html += `<p><strong>GitHub:</strong> ${contactData.github}</p>`;
+    if (contactData.event) html += `<p><strong>Event:</strong> <span class="tag is-info">${contactData.event}</span></p>`;
+
+    detailsDiv.innerHTML = html;
+    modal.classList.add('is-active');
+
+    // Close handlers
+    const closeModal = () => {
+      modal.classList.remove('is-active');
+    };
+
+    document.getElementById('close-scanned-contact').onclick = closeModal;
+    document.getElementById('cancel-scanned-contact').onclick = closeModal;
+    modal.querySelector('.modal-background').onclick = closeModal;
+
+    // Save handler
+    document.getElementById('save-scanned-contact').onclick = async () => {
+      try {
+        await db.addContact(contactData);
+        this.showNotification('Contact saved successfully!', 'success');
+        closeModal();
+
+        // Refresh contacts if needed
+        if (typeof ContactsManager !== 'undefined') {
+          await ContactsManager.loadEventFilters();
+          await ContactsManager.loadContacts();
+        }
+      } catch (error) {
+        console.error('Error saving contact:', error);
+        alert('Failed to save contact');
+      }
+    };
   }
 
   // Show add contact modal

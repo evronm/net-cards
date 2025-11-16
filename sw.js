@@ -1,4 +1,4 @@
-const CACHE_NAME = 'net-cards-v3';
+const CACHE_NAME = 'net-cards-v4';
 const urlsToCache = [
   '/',
   '/index.html',
