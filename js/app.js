@@ -175,6 +175,45 @@ class App {
     }
   }
 
+  // Share my card to contacts
+  async shareMyCard() {
+    try {
+      const profile = await db.getProfile();
+
+      if (!profile || !profile.name) {
+        alert('Please save your profile first');
+        return;
+      }
+
+      const vcardString = VCard.generate(profile);
+      const blob = new Blob([vcardString], { type: 'text/vcard' });
+      const file = new File([blob], `${profile.name}.vcf`, { type: 'text/vcard' });
+
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: profile.name,
+          text: 'My contact card',
+          files: [file]
+        });
+      } else {
+        // Fallback: download the file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${profile.name}.vcf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Error sharing card:', error);
+      if (error.name !== 'AbortError') {
+        alert('Failed to share card');
+      }
+    }
+  }
+
   // Setup scanner controls
   setupScannerControls() {
     document.getElementById('start-scan').addEventListener('click', async () => {
@@ -183,6 +222,11 @@ class App {
 
     document.getElementById('stop-scan').addEventListener('click', () => {
       QRScanner.stopScanning();
+    });
+
+    // Share my card button
+    document.getElementById('share-my-card').addEventListener('click', async () => {
+      await this.shareMyCard();
     });
 
     // Download QR button
