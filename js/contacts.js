@@ -300,19 +300,36 @@ const ContactsManager = {
     try {
       const contact = await db.getContact(id);
       const vcardString = VCard.generate(contact);
-      const blob = new Blob([vcardString], { type: 'text/vcard;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
 
-      // Sanitize filename
-      const safeName = contact.name.replace(/[^a-z0-9]/gi, '_');
+      // Try different MIME types - some devices respond better to different ones
+      const mimeTypes = [
+        'text/x-vcard;charset=utf-8',  // Some devices prefer this
+        'text/vcard;charset=utf-8',
+        'text/directory;charset=utf-8'
+      ];
 
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${safeName}.vcf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Try opening as data URL first - might trigger OS to open in Contacts
+      const dataUrl = 'data:text/x-vcard;charset=utf-8,' + encodeURIComponent(vcardString);
+
+      // Try to open it - some devices will prompt to add to contacts
+      const opened = window.open(dataUrl, '_blank');
+
+      if (!opened) {
+        // If popup was blocked, fall back to download
+        const blob = new Blob([vcardString], { type: 'text/x-vcard;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        // Sanitize filename
+        const safeName = contact.name.replace(/[^a-z0-9]/gi, '_');
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeName}.vcf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     } catch (error) {
       console.error('Error exporting contact:', error);
       alert('Failed to export contact');
