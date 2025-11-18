@@ -99,7 +99,8 @@ const VCard = {
     // Add branding footer
     notes.push('Via netcards.app');
 
-    return notes.join('\n');
+    // vCard 3.0 requires newlines to be encoded as \n (literal backslash-n)
+    return notes.join('\\n');
   },
 
   // Parse V-Card string to contact data
