@@ -96,6 +96,9 @@ const VCard = {
       notes.push(`Event: ${contactData.event}`);
     }
 
+    // Add branding footer
+    notes.push('Via netcards.app');
+
     return notes.join('\n');
   },
 
