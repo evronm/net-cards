@@ -189,14 +189,32 @@ class App {
       const blob = new Blob([vcardString], { type: 'text/vcard' });
       const file = new File([blob], `${profile.name}.vcf`, { type: 'text/vcard' });
 
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: profile.name,
-          text: 'My contact card',
-          files: [file]
-        });
+      // Try to share with Web Share API
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: profile.name,
+            text: 'My contact card',
+            files: [file]
+          });
+        } catch (shareError) {
+          // If share was cancelled, don't show error
+          if (shareError.name === 'AbortError') {
+            return;
+          }
+          // If share failed, fall back to download
+          console.log('Share failed, falling back to download:', shareError);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${profile.name}.vcf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
       } else {
-        // Fallback: download the file
+        // Fallback: download the file if Web Share API not available
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

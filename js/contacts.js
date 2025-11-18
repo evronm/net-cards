@@ -270,14 +270,25 @@ const ContactsManager = {
       const blob = new Blob([vcardString], { type: 'text/vcard' });
       const file = new File([blob], `${contact.name}.vcf`, { type: 'text/vcard' });
 
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: contact.name,
-          text: 'Contact card',
-          files: [file]
-        });
+      // Try to share with Web Share API
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: contact.name,
+            text: 'Contact card',
+            files: [file]
+          });
+        } catch (shareError) {
+          // If share was cancelled, don't show error
+          if (shareError.name === 'AbortError') {
+            return;
+          }
+          // If share failed, fall back to download
+          console.log('Share failed, falling back to download:', shareError);
+          this.exportContact(id);
+        }
       } else {
-        // Fallback: download the file
+        // Fallback: download the file if Web Share API not available
         this.exportContact(id);
       }
     } catch (error) {
