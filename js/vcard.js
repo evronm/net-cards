@@ -77,16 +77,10 @@ const VCard = {
       vcard += `NOTE:${noteText}\r\n`;
     }
 
-    // Add categories: event (if present) and tags
-    const categories = [];
-    if (contactData.event) {
-      categories.push(`Event: ${contactData.event}`);
-    }
+    // Add categories/tags
     if (contactData.tags && contactData.tags.length > 0) {
-      categories.push(...contactData.tags);
-    }
-    if (categories.length > 0) {
-      vcard += `CATEGORIES:${categories.join(',')}\r\n`;
+      const categories = contactData.tags.join(',');
+      vcard += `CATEGORIES:${categories}\r\n`;
     }
 
     vcard += 'END:VCARD\r\n';
@@ -94,11 +88,19 @@ const VCard = {
     return vcard;
   },
 
-  // Generate note text with branding only
+  // Generate note text with all custom data
   generateNoteText(contactData) {
+    const notes = [];
+
+    if (contactData.event) {
+      notes.push(`Event: ${contactData.event}`);
+    }
+
+    // Add branding footer
+    notes.push('Via netcards.app');
+
     // vCard 3.0 requires newlines to be encoded as \n (literal backslash-n)
-    // Only include branding, event is now in CATEGORIES
-    return 'Via netcards.app';
+    return notes.join('\\n');
   },
 
   // Parse V-Card string to contact data
@@ -188,22 +190,8 @@ const VCard = {
         this.parseNotes(value, contactData);
         break;
       case 'CATEGORIES':
-        // Parse categories: extract event (if present) and tags
-        const categories = value.split(',').map(t => t.trim()).filter(t => t);
-        contactData.tags = [];
-
-        for (const category of categories) {
-          // Check if this is an event category (format: "Event: EventName")
-          if (category.startsWith('Event: ')) {
-            const eventValue = category.substring(7).trim(); // Remove "Event: " prefix
-            if (eventValue && !contactData.event) {
-              contactData.event = eventValue;
-            }
-          } else {
-            // Regular tag
-            contactData.tags.push(category);
-          }
-        }
+        // Parse categories/tags (comma-separated)
+        contactData.tags = value.split(',').map(t => t.trim()).filter(t => t);
         break;
     }
   },
