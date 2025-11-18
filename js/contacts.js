@@ -270,30 +270,42 @@ const ContactsManager = {
       const blob = new Blob([vcardString], { type: 'text/vcard' });
       const file = new File([blob], `${contact.name}.vcf`, { type: 'text/vcard' });
 
+      // Check if Web Share API is available
+      if (!navigator.share) {
+        console.log('Web Share API not available, using download');
+        this.exportContact(id);
+        return;
+      }
+
+      // Check if file sharing is supported
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+        console.log('File sharing not supported, using download');
+        this.exportContact(id);
+        return;
+      }
+
       // Try to share with Web Share API
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: contact.name,
-            text: 'Contact card',
-            files: [file]
-          });
-        } catch (shareError) {
-          // If share was cancelled, don't show error
-          if (shareError.name === 'AbortError') {
-            return;
-          }
-          // If share failed, fall back to download
-          console.log('Share failed, falling back to download:', shareError);
-          this.exportContact(id);
+      try {
+        await navigator.share({
+          files: [file],
+          title: contact.name,
+          text: 'Contact card'
+        });
+        console.log('Share successful');
+      } catch (shareError) {
+        // If share was cancelled, don't show error
+        if (shareError.name === 'AbortError') {
+          console.log('Share cancelled by user');
+          return;
         }
-      } else {
-        // Fallback: download the file if Web Share API not available
+        // If share failed, fall back to download
+        console.log('Share failed, error:', shareError.name, shareError.message);
+        alert(`Share failed (${shareError.name}), downloading instead`);
         this.exportContact(id);
       }
     } catch (error) {
       console.error('Error sharing contact:', error);
-      alert('Failed to share contact');
+      alert('Failed to share contact: ' + error.message);
     }
   },
 
