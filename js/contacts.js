@@ -1,11 +1,13 @@
 // Contacts manager module
 const ContactsManager = {
   currentFilter: '',
+  currentTagFilter: '',
   currentSearch: '',
 
   // Initialize contacts view
   async init() {
     await this.loadEventFilters();
+    await this.loadTagFilters();
     await this.loadContacts();
   },
 
@@ -29,6 +31,14 @@ const ContactsManager = {
           // Also filter by event
           contacts = contacts.filter(c => c.event && c.event.includes(this.currentFilter));
         }
+      }
+
+      // Apply tag filter if active
+      if (this.currentTagFilter) {
+        contacts = contacts.filter(c => {
+          const tags = c.tags || [];
+          return tags.includes(this.currentTagFilter);
+        });
       }
 
       // Sort by timestamp (newest first)
@@ -64,6 +74,9 @@ const ContactsManager = {
     const events = contact.event ? contact.event.split(',').map(e => e.trim()) : [];
     const eventTags = events.map(e => `<span class="tag is-info">${e}</span>`).join(' ');
 
+    const tags = contact.tags || [];
+    const categoryTags = tags.map(t => `<span class="tag is-warning">${t}</span>`).join(' ');
+
     return `
       <div class="box contact-card" data-contact-id="${contact.id}">
         <article class="media">
@@ -87,7 +100,9 @@ const ContactsManager = {
               ${contact.linkedin ? `<a href="https://${contact.linkedin}" target="_blank" class="button is-small is-link"><i class="fab fa-linkedin"></i></a> ` : ''}
               ${contact.twitter ? `<a href="https://twitter.com/${contact.twitter.replace('@', '')}" target="_blank" class="button is-small is-info"><i class="fab fa-twitter"></i></a> ` : ''}
               ${contact.github ? `<a href="https://${contact.github}" target="_blank" class="button is-small is-dark"><i class="fab fa-github"></i></a>` : ''}
-              ${eventTags ? `<br><br>${eventTags}` : ''}
+              ${eventTags || categoryTags ? `<br><br>` : ''}
+              ${eventTags ? `${eventTags} ` : ''}
+              ${categoryTags ? categoryTags : ''}
               ${contact.timestamp ? `<br><small class="has-text-grey">Added: ${new Date(contact.timestamp).toLocaleDateString()}</small>` : ''}
             </div>
           </div>
@@ -150,6 +165,27 @@ const ContactsManager = {
       });
     } catch (error) {
       console.error('Error loading events:', error);
+    }
+  },
+
+  // Load tag filters
+  async loadTagFilters() {
+    try {
+      const tags = await db.getAllTags();
+      const tagFilter = document.getElementById('tag-filter');
+
+      // Clear existing options (except "All Tags")
+      tagFilter.innerHTML = '<option value="">All Tags</option>';
+
+      // Add tag options
+      tags.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag.name;
+        option.textContent = tag.name;
+        tagFilter.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Error loading tags:', error);
     }
   },
 
@@ -286,6 +322,12 @@ const ContactsManager = {
   // Apply event filter
   applyEventFilter(event) {
     this.currentFilter = event;
+    this.loadContacts();
+  },
+
+  // Apply tag filter
+  applyTagFilter(tag) {
+    this.currentTagFilter = tag;
     this.loadContacts();
   },
 

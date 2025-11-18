@@ -90,6 +90,9 @@ class App {
         case 'contacts':
           await ContactsManager.init();
           break;
+        case 'tags':
+          await TagsManager.init();
+          break;
         case 'scan':
           // Stop any ongoing scan when leaving/entering
           if (QRScanner.scanning) {
@@ -218,6 +221,12 @@ class App {
       ContactsManager.applyEventFilter(e.target.value);
     });
 
+    // Tag filter
+    const tagFilter = document.getElementById('tag-filter');
+    tagFilter.addEventListener('change', (e) => {
+      ContactsManager.applyTagFilter(e.target.value);
+    });
+
     // Add Contact button
     document.getElementById('add-contact-btn').addEventListener('click', () => {
       this.showAddContactModal();
@@ -257,6 +266,22 @@ class App {
     if (viewContactsBtn) {
       viewContactsBtn.addEventListener('click', () => {
         this.navigateToSection('contacts');
+      });
+    }
+
+    // Manage tags button
+    const manageTagsBtn = document.getElementById('manage-tags-btn');
+    if (manageTagsBtn) {
+      manageTagsBtn.addEventListener('click', () => {
+        this.navigateToSection('tags');
+      });
+    }
+
+    // Back to card from tags button
+    const backToCardFromTagsBtn = document.getElementById('back-to-card-from-tags-btn');
+    if (backToCardFromTagsBtn) {
+      backToCardFromTagsBtn.addEventListener('click', () => {
+        this.navigateToSection('my-card');
       });
     }
   }
@@ -372,7 +397,7 @@ class App {
   }
 
   // Show scanned contact preview modal
-  showScannedContactModal(contactData) {
+  async showScannedContactModal(contactData) {
     const modal = document.getElementById('scanned-contact-modal');
     const detailsDiv = document.getElementById('scanned-contact-details');
 
@@ -389,6 +414,12 @@ class App {
     if (contactData.event) html += `<p><strong>Event:</strong> <span class="tag is-info">${contactData.event}</span></p>`;
 
     detailsDiv.innerHTML = html;
+
+    // Load tag checkboxes
+    const tagsContainer = document.getElementById('scanned-contact-tags');
+    const selectedTags = contactData.tags || [];
+    tagsContainer.innerHTML = await TagsManager.getTagCheckboxesHTML(selectedTags);
+
     modal.classList.add('is-active');
 
     // Close handlers
@@ -403,6 +434,10 @@ class App {
     // Save handler
     document.getElementById('save-scanned-contact').onclick = async () => {
       try {
+        // Get selected tags
+        const selectedTags = TagsManager.getSelectedTags('#scanned-contact-tags');
+        contactData.tags = selectedTags;
+
         await db.addContact(contactData);
         this.showNotification('Contact saved successfully!', 'success');
         closeModal();
@@ -410,6 +445,7 @@ class App {
         // Refresh contacts if needed
         if (typeof ContactsManager !== 'undefined') {
           await ContactsManager.loadEventFilters();
+          await ContactsManager.loadTagFilters();
           await ContactsManager.loadContacts();
         }
       } catch (error) {
@@ -420,7 +456,7 @@ class App {
   }
 
   // Show add contact modal
-  showAddContactModal() {
+  async showAddContactModal() {
     const modal = document.getElementById('add-contact-modal');
     modal.classList.add('is-active');
 
@@ -431,6 +467,10 @@ class App {
     // Store that we're in add mode
     modal.dataset.mode = 'add';
     delete modal.dataset.contactId;
+
+    // Load tag checkboxes
+    const tagsContainer = document.getElementById('add-contact-tags');
+    tagsContainer.innerHTML = await TagsManager.getTagCheckboxesHTML([]);
 
     // Close handlers
     const closeModal = () => {
@@ -451,7 +491,7 @@ class App {
   }
 
   // Show edit contact modal
-  showEditContactModal(contact) {
+  async showEditContactModal(contact) {
     const modal = document.getElementById('add-contact-modal');
     modal.classList.add('is-active');
 
@@ -473,6 +513,11 @@ class App {
     document.getElementById('add-twitter').value = contact.twitter || '';
     document.getElementById('add-github').value = contact.github || '';
     document.getElementById('add-event').value = contact.event || '';
+
+    // Load tag checkboxes with selected tags
+    const tagsContainer = document.getElementById('add-contact-tags');
+    const selectedTags = contact.tags || [];
+    tagsContainer.innerHTML = await TagsManager.getTagCheckboxesHTML(selectedTags);
 
     // Close handlers
     const closeModal = () => {
@@ -508,7 +553,8 @@ class App {
       linkedin: document.getElementById('add-linkedin').value.trim(),
       twitter: document.getElementById('add-twitter').value.trim(),
       github: document.getElementById('add-github').value.trim(),
-      event: document.getElementById('add-event').value.trim()
+      event: document.getElementById('add-event').value.trim(),
+      tags: TagsManager.getSelectedTags('#add-contact-tags')
     };
 
     if (!contactData.name) {
@@ -535,6 +581,7 @@ class App {
 
       // Refresh contacts list
       await ContactsManager.loadEventFilters();
+      await ContactsManager.loadTagFilters();
       await ContactsManager.loadContacts();
     } catch (error) {
       console.error('Error saving contact:', error);
@@ -560,13 +607,14 @@ class App {
     // Wait for QRCode library
     if (typeof QRCode !== 'undefined') {
       // Generate QR code
+      // Using M (medium) error correction instead of H (high) to allow more data
       const qr = new QRCode(qrDisplay, {
         text: vcardString,
         width: 300,
         height: 300,
         colorDark: '#000000',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H
+        correctLevel: QRCode.CorrectLevel.M
       });
 
       // Show contact info

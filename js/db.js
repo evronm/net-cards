@@ -1,8 +1,9 @@
 // IndexedDB wrapper for Net-Cards
 const DB_NAME = 'NetCardsDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_PROFILE = 'profile';
 const STORE_CONTACTS = 'contacts';
+const STORE_TAGS = 'tags';
 
 class Database {
   constructor() {
@@ -45,6 +46,16 @@ class Database {
           contactsStore.createIndex('event', 'event', { unique: false });
           contactsStore.createIndex('timestamp', 'timestamp', { unique: false });
           console.log('Contacts store created');
+        }
+
+        // Create tags store
+        if (!db.objectStoreNames.contains(STORE_TAGS)) {
+          const tagsStore = db.createObjectStore(STORE_TAGS, {
+            keyPath: 'id',
+            autoIncrement: true
+          });
+          tagsStore.createIndex('name', 'name', { unique: true });
+          console.log('Tags store created');
         }
       };
     });
@@ -185,6 +196,80 @@ class Database {
 
       request.onsuccess = () => resolve();
       request.onerror = () => reject('Failed to clear contacts');
+    });
+  }
+
+  // Tag methods
+  async addTag(tagName) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_TAGS], 'readwrite');
+      const store = transaction.objectStore(STORE_TAGS);
+
+      const tagData = {
+        name: tagName,
+        timestamp: new Date().toISOString()
+      };
+
+      const request = store.add(tagData);
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject('Failed to add tag (may already exist)');
+    });
+  }
+
+  async updateTag(id, tagName) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_TAGS], 'readwrite');
+      const store = transaction.objectStore(STORE_TAGS);
+
+      const tagData = {
+        id: id,
+        name: tagName,
+        timestamp: new Date().toISOString()
+      };
+
+      const request = store.put(tagData);
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject('Failed to update tag');
+    });
+  }
+
+  async deleteTag(id) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_TAGS], 'readwrite');
+      const store = transaction.objectStore(STORE_TAGS);
+      const request = store.delete(id);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject('Failed to delete tag');
+    });
+  }
+
+  async getAllTags() {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_TAGS], 'readonly');
+      const store = transaction.objectStore(STORE_TAGS);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const tags = request.result;
+        // Sort alphabetically by name
+        tags.sort((a, b) => a.name.localeCompare(b.name));
+        resolve(tags);
+      };
+      request.onerror = () => reject('Failed to get tags');
+    });
+  }
+
+  async getTag(id) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_TAGS], 'readonly');
+      const store = transaction.objectStore(STORE_TAGS);
+      const request = store.get(id);
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject('Failed to get tag');
     });
   }
 }

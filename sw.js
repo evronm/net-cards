@@ -1,4 +1,4 @@
-const CACHE_NAME = 'net-cards-v7';
+const CACHE_NAME = 'net-cards-v10';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const urlsToCache = [
   '/js/qr-generator.js',
   '/js/qr-scanner.js',
   '/js/contacts.js',
+  '/js/tags.js',
   '/js/import-export.js',
   '/js/app.js',
   'https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css',

@@ -83,6 +83,7 @@ const ImportExport = {
       // Refresh contacts list and event filters
       if (typeof ContactsManager !== 'undefined') {
         await ContactsManager.loadEventFilters();
+        await ContactsManager.loadTagFilters();
         await ContactsManager.loadContacts();
       }
 

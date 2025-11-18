@@ -77,6 +77,12 @@ const VCard = {
       vcard += `NOTE:${noteText}\r\n`;
     }
 
+    // Add categories/tags
+    if (contactData.tags && contactData.tags.length > 0) {
+      const categories = contactData.tags.join(',');
+      vcard += `CATEGORIES:${categories}\r\n`;
+    }
+
     vcard += 'END:VCARD\r\n';
     console.log('Generated VCard:', vcard);
     return vcard;
@@ -89,24 +95,6 @@ const VCard = {
     if (contactData.event) {
       notes.push(`Event: ${contactData.event}`);
     }
-
-    if (contactData.timestamp) {
-      const date = new Date(contactData.timestamp);
-      notes.push(`Added: ${date.toLocaleDateString()}`);
-    }
-
-    // Add social handles for reference (in addition to URLs)
-    const socialHandles = [];
-    if (contactData.linkedin) socialHandles.push(`LinkedIn: ${contactData.linkedin}`);
-    if (contactData.twitter) socialHandles.push(`Twitter: ${contactData.twitter}`);
-    if (contactData.github) socialHandles.push(`GitHub: ${contactData.github}`);
-
-    if (socialHandles.length > 0) {
-      notes.push(socialHandles.join(' | '));
-    }
-
-    // Add footer message
-    notes.push('\nNo trees were harmed in the making of this contact. https://netcards.app');
 
     return notes.join('\n');
   },
@@ -196,6 +184,10 @@ const VCard = {
       case 'NOTE':
         // Parse notes field
         this.parseNotes(value, contactData);
+        break;
+      case 'CATEGORIES':
+        // Parse categories/tags (comma-separated)
+        contactData.tags = value.split(',').map(t => t.trim()).filter(t => t);
         break;
     }
   },
