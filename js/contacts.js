@@ -262,21 +262,18 @@ const ContactsManager = {
     }
   },
 
-  // Share/Export contact - uses Web Share API if available, otherwise downloads VCF
+  // Share/Export contact - uses Web Share API with text
   async shareContact(id) {
     try {
       const contact = await db.getContact(id);
       const vcardString = VCard.generate(contact);
-      const blob = new Blob([vcardString], { type: 'text/vcard;charset=utf-8' });
-      const file = new File([blob], `${contact.name}.vcf`, { type: 'text/vcard;charset=utf-8' });
 
-      // Try Web Share API with file sharing if supported
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Try Web Share API first (sharing as text - widely supported)
+      if (navigator.share) {
         try {
           await navigator.share({
-            files: [file],
-            title: contact.name,
-            text: 'Contact card'
+            title: `Contact: ${contact.name}`,
+            text: vcardString
           });
           return;
         } catch (shareError) {
