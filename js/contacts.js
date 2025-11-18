@@ -270,22 +270,37 @@ const ContactsManager = {
       const blob = new Blob([vcardString], { type: 'text/vcard' });
       const file = new File([blob], `${contact.name}.vcf`, { type: 'text/vcard' });
 
+      // Debug info
+      const hasShare = !!navigator.share;
+      const hasCanShare = !!navigator.canShare;
+      let canShareFiles = false;
+      if (hasCanShare) {
+        try {
+          canShareFiles = navigator.canShare({ files: [file] });
+        } catch (e) {
+          console.error('canShare check failed:', e);
+        }
+      }
+
+      console.log('Share debug:', { hasShare, hasCanShare, canShareFiles });
+
       // Check if Web Share API is available
       if (!navigator.share) {
-        console.log('Web Share API not available, using download');
+        alert('Web Share API not available on this browser. Your browser: ' + navigator.userAgent.substring(0, 50));
         this.exportContact(id);
         return;
       }
 
       // Check if file sharing is supported
-      if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-        console.log('File sharing not supported, using download');
+      if (hasCanShare && !canShareFiles) {
+        alert('File sharing not supported on this browser/device. Downloading instead.');
         this.exportContact(id);
         return;
       }
 
       // Try to share with Web Share API
       try {
+        console.log('Attempting to share file...');
         await navigator.share({
           files: [file],
           title: contact.name,
@@ -300,7 +315,7 @@ const ContactsManager = {
         }
         // If share failed, fall back to download
         console.log('Share failed, error:', shareError.name, shareError.message);
-        alert(`Share failed (${shareError.name}), downloading instead`);
+        alert(`Share failed: ${shareError.name} - ${shareError.message}. Downloading instead.`);
         this.exportContact(id);
       }
     } catch (error) {
