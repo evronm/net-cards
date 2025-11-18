@@ -111,6 +111,65 @@ class App {
       e.preventDefault();
       await this.saveProfile();
     });
+
+    // Monitor form changes to update size indicator
+    const formInputs = form.querySelectorAll('input');
+    formInputs.forEach(input => {
+      input.addEventListener('input', () => {
+        this.updateQRSizeIndicator();
+      });
+    });
+  }
+
+  // Update QR size indicator
+  updateQRSizeIndicator() {
+    try {
+      // Get current form data
+      const profileData = {
+        name: document.getElementById('full-name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        company: document.getElementById('company').value.trim(),
+        title: document.getElementById('title').value.trim(),
+        website: document.getElementById('website').value.trim(),
+        linkedin: document.getElementById('linkedin').value.trim(),
+        twitter: document.getElementById('twitter').value.trim(),
+        github: document.getElementById('github').value.trim(),
+        event: document.getElementById('current-event').value.trim()
+      };
+
+      // Generate vCard to calculate size
+      const vcardString = VCard.generate(profileData);
+      const size = new Blob([vcardString]).size;
+
+      const indicator = document.getElementById('qr-size-indicator');
+      const icon = document.getElementById('qr-size-icon').querySelector('i');
+      const text = document.getElementById('qr-size-text');
+
+      // QR capacity thresholds (L error correction)
+      const MAX_SIZE = 2035; // Approximate max for QR with L error correction
+      const WARNING_SIZE = 1800; // Show warning
+      const CRITICAL_SIZE = 1950; // Show critical warning
+
+      if (size < WARNING_SIZE) {
+        // Good - plenty of space
+        indicator.style.display = 'none';
+      } else if (size < CRITICAL_SIZE) {
+        // Warning - getting close
+        indicator.style.display = 'block';
+        indicator.className = 'notification is-warning';
+        icon.className = 'fas fa-exclamation-triangle';
+        text.textContent = `QR code size: ${size} bytes (${Math.round((size/MAX_SIZE)*100)}% of capacity). Consider shortening some fields.`;
+      } else {
+        // Critical - very close to limit
+        indicator.style.display = 'block';
+        indicator.className = 'notification is-danger';
+        icon.className = 'fas fa-exclamation-circle';
+        text.textContent = `QR code size: ${size} bytes (${Math.round((size/MAX_SIZE)*100)}% of capacity). QR may fail! Remove some fields.`;
+      }
+    } catch (error) {
+      console.error('Error calculating QR size:', error);
+    }
   }
 
   // Load user profile
@@ -130,6 +189,9 @@ class App {
         document.getElementById('twitter').value = profile.twitter || '';
         document.getElementById('github').value = profile.github || '';
         document.getElementById('current-event').value = profile.event || '';
+
+        // Update size indicator
+        this.updateQRSizeIndicator();
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -607,14 +669,14 @@ class App {
     // Wait for QRCode library
     if (typeof QRCode !== 'undefined') {
       // Generate QR code
-      // Using M (medium) error correction instead of H (high) to allow more data
+      // Using L (low) error correction to maximize data capacity
       const qr = new QRCode(qrDisplay, {
         text: vcardString,
         width: 300,
         height: 300,
         colorDark: '#000000',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.L
       });
 
       // Show contact info

@@ -71,14 +71,14 @@ const QRGenerator = {
       }
 
       // Create new QR code instance
-      // Using M (medium) error correction instead of H (high) to allow more data
+      // Using L (low) error correction to maximize data capacity
       this.qrCodeInstance = new QRCode(qrDisplay, {
         text: vcardString,
         width: 300,
         height: 300,
         colorDark: '#000000',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.L
       });
 
       // Update event display
