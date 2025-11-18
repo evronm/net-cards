@@ -126,7 +126,6 @@ class App {
     try {
       // Check if VCard is available
       if (typeof VCard === 'undefined') {
-        console.error('VCard module not loaded yet');
         return;
       }
 
@@ -148,40 +147,32 @@ class App {
       const vcardString = VCard.generate(profileData);
       const size = new Blob([vcardString]).size;
 
-      console.log('QR size check:', size, 'bytes');
-
       const indicator = document.getElementById('qr-size-indicator');
+      if (!indicator) return;
+
       const icon = document.getElementById('qr-size-icon').querySelector('i');
       const text = document.getElementById('qr-size-text');
 
-      if (!indicator) {
-        console.error('Size indicator element not found');
-        return;
-      }
-
       // QR capacity thresholds (L error correction)
       const MAX_SIZE = 2035; // Approximate max for QR with L error correction
-      const WARNING_SIZE = 500; // Show warning (lowered for testing - normally 1800)
-      const CRITICAL_SIZE = 1950; // Show critical warning
+      const WARNING_SIZE = 1800; // Show warning at 88% capacity
+      const CRITICAL_SIZE = 1950; // Show critical warning at 96% capacity
 
       if (size < WARNING_SIZE) {
         // Good - plenty of space
         indicator.style.display = 'none';
-        console.log('Size OK - indicator hidden');
       } else if (size < CRITICAL_SIZE) {
         // Warning - getting close
         indicator.style.display = 'block';
         indicator.className = 'notification is-warning';
         icon.className = 'fas fa-exclamation-triangle';
         text.textContent = `QR code size: ${size} bytes (${Math.round((size/MAX_SIZE)*100)}% of capacity). Consider shortening some fields.`;
-        console.log('Warning shown:', size, 'bytes');
       } else {
         // Critical - very close to limit
         indicator.style.display = 'block';
         indicator.className = 'notification is-danger';
         icon.className = 'fas fa-exclamation-circle';
         text.textContent = `QR code size: ${size} bytes (${Math.round((size/MAX_SIZE)*100)}% of capacity). QR may fail! Remove some fields.`;
-        console.log('Critical warning shown:', size, 'bytes');
       }
     } catch (error) {
       console.error('Error calculating QR size:', error);
