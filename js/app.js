@@ -207,7 +207,6 @@ class App {
 
   // Save user profile
   async saveProfile() {
-    console.log('Saving profile...');
     const profileData = {
       name: document.getElementById('full-name').value.trim(),
       email: document.getElementById('email').value.trim(),
@@ -227,14 +226,9 @@ class App {
       return;
     }
 
-    console.log('Profile data:', profileData);
-
     try {
-      console.log('Saving to database...');
       await db.saveProfile(profileData);
-      console.log('Profile saved, generating QR code...');
       await QRGenerator.generateFromProfile(profileData);
-      console.log('QR code generation complete');
 
       // Show success message
       this.showNotification('Profile saved successfully!', 'success');

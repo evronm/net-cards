@@ -89,7 +89,6 @@ const QRGenerator = {
         eventDisplay.textContent = 'No event specified';
       }
 
-      console.log('QR code generated successfully');
       return true;
     } catch (error) {
       console.error('Error generating QR code:', error);

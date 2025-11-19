@@ -4,7 +4,6 @@
 const VCard = {
   // Generate V-Card from contact data
   generate(contactData) {
-    console.log('Generating VCard for:', contactData.name);
     let vcard = 'BEGIN:VCARD\r\n';
     vcard += 'VERSION:3.0\r\n';
 
@@ -84,7 +83,6 @@ const VCard = {
     }
 
     vcard += 'END:VCARD\r\n';
-    console.log('Generated VCard:', vcard);
     return vcard;
   },
 
